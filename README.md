@@ -1,7 +1,7 @@
 # Training3
 Sockets playground
 
-Here you'll find a socket that serves local files via a given port and a client that requests files from the server.
+Here you'll find a server app that serves local files via a given port and a client that requests files from the server.
 
 (server)
 Run as root with the port given as an argument
