@@ -1,0 +1,12 @@
+Sa se scrie o aplicatie client si una server cu urmatorele specificatii:
+ 
+Programul server:
+-        Asculta pe un port(primit ca parametru) si primeste requesturi pentru diverse fisiere
+-        Trimite clientului fisierul care a fost solicitat sau mesajul "File not found" daca fisierul nu este disponibil
+-        Serverul poate primi requesturi de la mai multi clienti
+ 
+Programul client:
+-        Realizeaza o conexiune cu serverul si trimite requesturi catre el pe acea conexiune pentru diverse fisiere
+-        Numele fisierului solicitat este primit ca parametru de catre programul client
+-        Requestul consta in trimitrea catre server dupa realizarea conexiunii a numelui fisierului solicitat
+-        Fisierul trimis de catre server este salvat de catre client 
