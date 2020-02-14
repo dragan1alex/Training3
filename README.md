@@ -4,11 +4,15 @@ Sockets playground
 Here you'll find a socket that serves local files via a given port and a client that requests files from the server.
 
 The server:
+
 Run as root with the port given as an argument
+
 ex: sudo ./server 123
 
-The client"
+The client:
+
 You can run as a normal user with the following arguments: IP, PORT, FileName
+
 ex: ./client localhost 123 test.png
 
 
