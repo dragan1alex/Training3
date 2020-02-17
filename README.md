@@ -3,13 +3,23 @@ Sockets playground
 
 Here you'll find a server app that serves local files via a given port and a client that requests files from the server.
 
+The client app can be built normally, for the server build with -pthread:
+```
+gcc -o server server.c -pthread
+```
+
+
 (server)
 Run as root with the port given as an argument
- EX: sudo ./server 123
+```
+sudo ./server 123
+```
 
 (client)
 You can run as a normal user with the following arguments: IP, PORT, FileName
- EX: ./client localhost 123 test.png
+```
+./client localhost 123 test.png
+```
 
 
 The server will serve the file in several chunks (1024 bytes each) to minimize the memory used by the apps. 
