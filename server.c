@@ -39,7 +39,8 @@ uint8_t initializeServer(int sid, uint16_t port)
     saddr.sin_addr.s_addr = INADDR_ANY;
     if(bind(sid, (struct sockaddr *)&saddr, sizeof(saddr)) < 0)
     {
-        printf("\nBind failed\n");
+        print("Bind failed");
+        printf("\nTry running the server as root or chose a different port\n");
         return 0;
     }
     print("Bind successful");

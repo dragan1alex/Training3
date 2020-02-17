@@ -23,15 +23,15 @@ void print(char* s)
 
 int connectToServer(const char* ip, const char* port)
 {
-    //create a socket first
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock < 0)
+    //Create a socket
+    int servSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if(servSocket < 0)
     {
         print("Could not create socket");
         return -1;
     }
 
-    //set the IP address 
+    //Set the IP address and port for the connection
     if(strcmp(ip, "localhost") == 0)
     {
         serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -40,17 +40,28 @@ int connectToServer(const char* ip, const char* port)
     {
         serverAddress.sin_addr.s_addr = inet_addr(ip);
     }
+    if(serverAddress.sin_addr.s_addr == 0)
+    {
+        print("The IP address is not valid");
+        return -1;
+    }
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(atoi(port));
+
+    if(serverAddress.sin_port == 0)
+    {
+        print("The port is not valid");
+        return -1;
+    }
     
-    //try to connect to the server
-    if(connect(sock, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr)) < 0)
+    //Try to connect to the server
+    if(connect(servSocket, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr)) < 0)
     {
         print("Can't connect to the server, check the address and port");
         print("");
         return -1;
     }
-    return sock;
+    return servSocket;
 }
 
 
@@ -59,25 +70,24 @@ int main(int argc, char const *argv[])
 {
     int serverSocket;
     
-    //check if there were passed enough arguments
+    //Check if there were passed enough arguments
     //!!-- Data validation not done yet for the arguments, try to pass valid arguments --!!
     if (argc < 4)
     {
-        printf("\n%d", argc);
         print("Run the application with \"./client <ip> <port> <file>\"");
         print("");
         return 1;
     }
 
     serverSocket = connectToServer(argv[1], argv[2]);
-    char* reqFileName = (char*)argv[3];
+    char* reqFileName = (char*)argv[3];  //String for storing the requested file name
 
     if (serverSocket < 0)
     {
         return 1;
     }
 
-    //send the file name to the server
+    //Send the file name to the server
     if(send(serverSocket, reqFileName, strlen(reqFileName), 0) != strlen(reqFileName))
     {
         print("Sent a different number of bytes than expected, oops....crashing");
@@ -86,7 +96,7 @@ int main(int argc, char const *argv[])
     }
     printf("\nRequested the file %s", reqFileName);
     
-    //get the file size at first
+    //Get the file size at first
     int count;
     char fileS[10];
     count = recv(serverSocket, fileS, 10, 0);
