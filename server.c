@@ -11,12 +11,14 @@
 
 #define TRANSFER_BUFFER_SIZE 1024
 
+pthread_t lastThread;
+
 uint32_t fsize(FILE*);
 void print(char*);
 uint8_t initializeServer(int, uint16_t);
 void * handleRequest(void*);
 
-//get the file size
+/*get the file size */
 uint32_t fsize(FILE *fp){
     fseek(fp, 0L, SEEK_END);
     uint32_t sz=ftell(fp);
@@ -24,13 +26,13 @@ uint32_t fsize(FILE *fp){
     return sz;
 }
 
-//for debug purposes, print on a new line
+/*for debug purposes, print on a new line */
 void print(char* s)
 {
     printf("\n%s", s);
 }
 
-//initialize the socket to accept incoming connections on the specified port
+/*initialize the socket to accept incoming connections on the specified port */
 uint8_t initializeServer(int sid, uint16_t port)
 {
     struct sockaddr_in saddr;
@@ -48,7 +50,7 @@ uint8_t initializeServer(int sid, uint16_t port)
 }
 
 
-//the request handling thread function
+/*the request handling thread function */
 void * handleRequest(void * rS)
 {
     int replySocket = *(int *)rS;
@@ -56,8 +58,15 @@ void * handleRequest(void * rS)
     int  recBytes;
     char fileName[30];
     FILE *f;
+    uint32_t fs;
+    uint32_t readBytes;
+    char buffer[TRANSFER_BUFFER_SIZE];
+    uint32_t noChunks;
+    uint32_t bytesReceived; /*the number of bytes the client received*/
+    char clientBytesReceivedString[20]; /* client received bytes literal*/
+    uint8_t TxOK = 0; /*transmission OK flag*/
 
-    //get the file name the client wants
+    /*get the file name the client wants */
         recBytes = recv(replySocket, fileName, 30, 0);
         if(recBytes < 0)
         {
@@ -67,7 +76,7 @@ void * handleRequest(void * rS)
         }
         printf("\nReceived a request for %s ", fileName);
         fileName[recBytes] = '\0';
-        //try to open the file
+        /*try to open the file */
         f = fopen(fileName, "r");
         if(f == NULL)
         {
@@ -79,10 +88,8 @@ void * handleRequest(void * rS)
         }
         
         /*file size*/
-        uint32_t fs = fsize(f);
+        fs = fsize(f);
         /*bytes read from file*/
-        uint32_t readBytes;
-        char buffer[TRANSFER_BUFFER_SIZE];
         sprintf(buffer, "%u", fs);
         printf("\nFile found, sending %u bytes...", fs);
 
@@ -92,11 +99,8 @@ void * handleRequest(void * rS)
         strcpy(buffer, "");
 
         /*send the file in chunks of TRANSFER_BUFFER_SIZE bytes*/
-        uint32_t noChunks = (fs / TRANSFER_BUFFER_SIZE) + (fs % TRANSFER_BUFFER_SIZE != 0);
-        /*the number of bytes the client received*/
-        uint32_t bytesReceived; char clientBytesReceivedString[20];
-        /*transmission ok flag*/
-        uint8_t TxOK = 0;
+        noChunks = (fs / TRANSFER_BUFFER_SIZE) + (fs % TRANSFER_BUFFER_SIZE != 0);
+
         for(uint32_t i = 1; i<= noChunks && !abortConnection; i++)
         {
             readBytes = fread(buffer, sizeof(char), TRANSFER_BUFFER_SIZE, f);
@@ -131,7 +135,6 @@ void * handleRequest(void * rS)
         pthread_exit(NULL);
 }
 
-pthread_t lastThread;
 int main(int argc, char const *argv[])
 {
     int sockid, replySocket, c;
