@@ -78,23 +78,24 @@ void * handleRequest(void * rS)
             pthread_exit(NULL);
         }
         
-        //file size
+        /*file size*/
         uint32_t fs = fsize(f);
-        //bytes read from file
+        /*bytes read from file*/
         uint32_t readBytes;
         char buffer[TRANSFER_BUFFER_SIZE];
         sprintf(buffer, "%u", fs);
         printf("\nFile found, sending %u bytes...", fs);
 
 
-        //send the file size to the client
+        /*send the file size to the client*/
         send(replySocket, buffer, strlen(buffer), 0);
+        strcpy(buffer, "");
 
-        //send the file in chunks of TRANSFER_BUFFER_SIZE bytes
+        /*send the file in chunks of TRANSFER_BUFFER_SIZE bytes*/
         uint32_t noChunks = (fs / TRANSFER_BUFFER_SIZE) + (fs % TRANSFER_BUFFER_SIZE != 0);
-        //the number of bytes the client received
+        /*the number of bytes the client received*/
         uint32_t bytesReceived; char clientBytesReceivedString[20];
-        //transmission ok flag
+        /*transmission ok flag*/
         uint8_t TxOK = 0;
         for(uint32_t i = 1; i<= noChunks && !abortConnection; i++)
         {
@@ -124,8 +125,7 @@ void * handleRequest(void * rS)
                 }
             }
         }
-
-        //close the file and the connection
+        /*close the file and the connection*/
         fclose(f);
         shutdown(replySocket, 2);
         pthread_exit(NULL);
@@ -138,7 +138,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in client;
     uint16_t port;
 
-    //check if there's a port mentioned in the arguments
+    /*check if there's a port mentioned in the arguments*/
     if(argc > 1)
     {
         print("Received port: ");
@@ -151,9 +151,7 @@ int main(int argc, char const *argv[])
         print("");
         return -1;
     }
-    
-
-    //open a socket to accept incoming connections
+    /*open a socket to accept incoming connections */
     sockid = socket(PF_INET, SOCK_STREAM, 0);
     if(sockid == -1)
     {
@@ -162,13 +160,13 @@ int main(int argc, char const *argv[])
     }
     print("Socket created.");
 
-    //initialize it with the port
+    /*initialize it with the port */
     if(!initializeServer(sockid, port))
     {
         return 1;
     }
     
-    //listen on the socket
+    /*listen on the socket*/
     listen(sockid, 100);
     print("Initialization complete, to stop the server press CTRL+C (^C)");
     print("");
@@ -176,33 +174,25 @@ int main(int argc, char const *argv[])
     print("---Now running in an infinite loop---");
     print("-------------------------------------");
     
-    //check for incomming connections and handle them
+    /*check for incomming connections and handle them */
     while (1)
     {
         print("Waiting for a connection...");
         c = sizeof(struct sockaddr_in);
 
-        //open a new socket to talk to the client
+        /*open a new socket to talk to the client */
         replySocket = accept(sockid, (struct sockaddr*)&client, (socklen_t*)&c);
-        
         if(replySocket < 0)
         {
             print("Can't create a connection to the client...");
             continue;
         }
         print("Connection accepted.");
-        
+        /*Handle the client in a new thread*/
         pthread_create(&lastThread, NULL, handleRequest, (void *) &replySocket);
-        
         print("Connection closed.");
         printf("\nListening on port %d", port);
         print("");
     }
-    
-
-
-
-
-    print("");
     return 0;
 }

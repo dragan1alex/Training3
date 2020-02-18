@@ -139,6 +139,7 @@ int main(int argc, char const *argv[])
         RxOK = 0;
         while(!RxOK)
         {
+            RxOK = 0;
             receivedBytes = recv(serverSocket, RxBuffer, TRANSFER_BUFFER_SIZE, 0);
             printf("\nReceived a chunk with %d bytes", receivedBytes);
             sprintf(receivedBytesString, "%d", receivedBytes);
