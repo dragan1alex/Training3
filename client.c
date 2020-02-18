@@ -13,8 +13,8 @@
 
 struct sockaddr_in serverAddress;
 
-void print(char*);
-int connectToServer(const char*, const char* );
+void print(char* s);
+int connectToServer(const char* ip, const char* port);
 
 void print(char* s)
 {
@@ -23,7 +23,7 @@ void print(char* s)
 
 int connectToServer(const char* ip, const char* port)
 {
-    //Create a socket
+    /*Create a socket */
     int servSocket = socket(AF_INET, SOCK_STREAM, 0);
     if(servSocket < 0)
     {
@@ -31,7 +31,7 @@ int connectToServer(const char* ip, const char* port)
         return -1;
     }
 
-    //Set the IP address and port for the connection
+    /*Set the IP address and port for the connection */
     if(strcmp(ip, "localhost") == 0)
     {
         serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -54,7 +54,7 @@ int connectToServer(const char* ip, const char* port)
         return -1;
     }
     
-    //Try to connect to the server
+    /*Try to connect to the server */
     if(connect(servSocket, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr)) < 0)
     {
         print("Can't connect to the server, check the address and port");
@@ -69,9 +69,20 @@ int connectToServer(const char* ip, const char* port)
 int main(int argc, char const *argv[])
 {
     int serverSocket;
-    
-    //Check if there were passed enough arguments
-    //!!-- Data validation not done yet for the arguments, try to pass valid arguments --!!
+    int receivedBytes = 0; /*keep track of the number of received bytes in each chunk */
+    uint8_t RxOK = 0;
+    char receivedBytesString[20];
+    char* reqFileName = (char*)argv[3];  /*String for storing the requested file name */
+    int count;
+    char fileS[10]; /*stores the file size in string format*/
+    int fileSize;
+    char RxBuffer[TRANSFER_BUFFER_SIZE]; /*Buffer for receiving the file*/
+    uint32_t noChunks; /*Stores the number of packets to be received from the server*/
+    char path[50]; /*file path*/
+    FILE *f;
+
+    /*Check if there were passed enough arguments */
+    /*!!-- Data validation not done yet for the arguments, try to pass valid arguments --!! */
     if (argc < 4)
     {
         print("Run the application with \"./client <ip> <port> <file>\"");
@@ -80,14 +91,13 @@ int main(int argc, char const *argv[])
     }
 
     serverSocket = connectToServer(argv[1], argv[2]);
-    char* reqFileName = (char*)argv[3];  //String for storing the requested file name
 
     if (serverSocket < 0)
     {
         return 1;
     }
 
-    //Send the file name to the server
+    /*Send the file name to the server */
     if(send(serverSocket, reqFileName, strlen(reqFileName), 0) != strlen(reqFileName))
     {
         print("Sent a different number of bytes than expected, oops....crashing");
@@ -96,9 +106,6 @@ int main(int argc, char const *argv[])
     }
     printf("\nRequested the file %s", reqFileName);
     
-    //Get the file size at first
-    int count;
-    char fileS[10];
     count = recv(serverSocket, fileS, 10, 0);
     if(count < 0)
     {
@@ -106,36 +113,30 @@ int main(int argc, char const *argv[])
         print("");
         return -1;
     }
-    int fileSize = atoi(fileS);
+    fileSize = atoi(fileS);
     if(fileSize == -1)
     {
-        // -1 is the file not found message
+        /* -1 is the file not found message */
         printf("\nThe file %s is not present on the server\n", reqFileName);
         return -1;
     }
     printf("\nThe file size is %d bytes, waiting for transfer...", fileSize);
 
-    //if we're here, we got a valid file
-    //transfer the file in chunks of TRANSFER_BUFFER_SIZE bytes each
-    char RxBuffer[TRANSFER_BUFFER_SIZE];
-    uint32_t noChunks = (fileSize / TRANSFER_BUFFER_SIZE) + (fileSize % TRANSFER_BUFFER_SIZE != 0);
+    /*if we're here, we got a valid file */
+    /*transfer the file in chunks of TRANSFER_BUFFER_SIZE bytes each */
+    noChunks = (fileSize / TRANSFER_BUFFER_SIZE) + (fileSize % TRANSFER_BUFFER_SIZE != 0);
 
-    //create the file to be received in the folder "received"
-    char path[50];
+    /*create the file to be received in the folder "received" */
     if (mkdir("received", 0775) == -1)
     {
         chmod("received", 0775);
     }
     sprintf(path, "received/%s", reqFileName);
-    FILE *f = fopen(path, "w+");
-
-    //keep track of the number of received bytes in each chunk
-    int receivedBytes = 0;
-    uint8_t RxOK = 0;
-    char receivedBytesString[20];
-    for(uint32_t i=1; i<=noChunks; i++) //download the chunks
+    f = fopen(path, "w+");
+    /*Begin the transfer*/
+    for(uint32_t i=1; i<=noChunks; i++) 
     {
-        //try to receive the correct data for each chunk; todo: some kind of sumcheck for data integrity
+        /*try to receive the correct data for each chunk; todo: some kind of sumcheck for data integrity */
         RxOK = 0;
         while(!RxOK)
         {
@@ -144,7 +145,7 @@ int main(int argc, char const *argv[])
             printf("\nReceived a chunk with %d bytes", receivedBytes);
             sprintf(receivedBytesString, "%d", receivedBytes);
             send(serverSocket, receivedBytesString, strlen(receivedBytesString), 0);
-            //check if we received the right amount of data
+            /*check if we received the right amount of data */
             if((i < noChunks && receivedBytes == TRANSFER_BUFFER_SIZE) || (i == noChunks && receivedBytes == fileSize % TRANSFER_BUFFER_SIZE)) 
             {
                 RxOK = 1;
@@ -156,17 +157,17 @@ int main(int argc, char const *argv[])
             
         }
         
-        fwrite(RxBuffer, sizeof(char), receivedBytes, f); //write the received data to the disk
+        fwrite(RxBuffer, sizeof(char), receivedBytes, f); /*write the received data to the disk */
     }
 
-    //all done, close the file and set permissions
+    /*all done, close the file and set permissions */
     fclose(f);
     chmod(path, 0775);
 
     print("Transfer complete, exiting.");
     printf("\nYou'll find \"%s\" in the received folder\n", reqFileName);
 
-    //close the connection
+    /*close the connection */
     shutdown(serverSocket, 2);
     return 0;
 }
